@@ -37,10 +37,12 @@
 #pragma warning (disable : 4001)
 #endif
 
-#include <string.h>
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
+#include "../include/cstring.h"
+#include "../include/stdio.h"
+#include "../include/math.h"
+#include "../include/mm.h"
+#include "../include/serial.h"
+#include "../include/tools.h"
 #include <limits.h>
 #include <ctype.h>
 #include <float.h>
@@ -124,7 +126,7 @@ CJSON_PUBLIC(double) cJSON_GetNumberValue(const cJSON * const item)
 CJSON_PUBLIC(const char*) cJSON_Version(void)
 {
     static char version[15];
-    sprintf(version, "%i.%i.%i", CJSON_VERSION_MAJOR, CJSON_VERSION_MINOR, CJSON_VERSION_PATCH);
+    __serial_write_fmt("CPU %d -> cjson > Version: %d.%d.%d", __tools_get_cpu() - 1, CJSON_VERSION_MAJOR, CJSON_VERSION_MINOR, CJSON_VERSION_PATCH);
 
     return version;
 }
@@ -544,69 +546,6 @@ static cJSON_bool compare_double(double a, double b)
 /* Render the number nicely from the given item into a string. */
 static cJSON_bool print_number(const cJSON * const item, printbuffer * const output_buffer)
 {
-    unsigned char *output_pointer = NULL;
-    double d = item->valuedouble;
-    int length = 0;
-    size_t i = 0;
-    unsigned char number_buffer[26] = {0}; /* temporary buffer to print the number into */
-    unsigned char decimal_point = get_decimal_point();
-    double test = 0.0;
-
-    if (output_buffer == NULL)
-    {
-        return false;
-    }
-
-    /* This checks for NaN and Infinity */
-    if (isnan(d) || isinf(d))
-    {
-        length = sprintf((char*)number_buffer, "null");
-    }
-	else if(d == (double)item->valueint)
-	{
-		length = sprintf((char*)number_buffer, "%d", item->valueint);
-	}
-    else
-    {
-        /* Try 15 decimal places of precision to avoid nonsignificant nonzero digits */
-        length = sprintf((char*)number_buffer, "%1.15g", d);
-
-        /* Check whether the original double can be recovered */
-        if ((sscanf((char*)number_buffer, "%lg", &test) != 1) || !compare_double((double)test, d))
-        {
-            /* If not, print with 17 decimal places of precision */
-            length = sprintf((char*)number_buffer, "%1.17g", d);
-        }
-    }
-
-    /* sprintf failed or buffer overrun occurred */
-    if ((length < 0) || (length > (int)(sizeof(number_buffer) - 1)))
-    {
-        return false;
-    }
-
-    /* reserve appropriate space in the output */
-    output_pointer = ensure(output_buffer, (size_t)length + sizeof(""));
-    if (output_pointer == NULL)
-    {
-        return false;
-    }
-
-    /* copy the printed number to the output and replace locale
-     * dependent decimal point with '.' */
-    for (i = 0; i < ((size_t)length); i++)
-    {
-        if (number_buffer[i] == decimal_point)
-        {
-            output_pointer[i] = '.';
-            continue;
-        }
-
-        output_pointer[i] = number_buffer[i];
-    }
-    output_pointer[i] = '\0';
-
-    output_buffer->offset += (size_t)length;
 
     return true;
 }
@@ -901,121 +840,6 @@ fail:
 /* Render the cstring provided to an escaped version that can be printed. */
 static cJSON_bool print_string_ptr(const unsigned char * const input, printbuffer * const output_buffer)
 {
-    const unsigned char *input_pointer = NULL;
-    unsigned char *output = NULL;
-    unsigned char *output_pointer = NULL;
-    size_t output_length = 0;
-    /* numbers of additional characters needed for escaping */
-    size_t escape_characters = 0;
-
-    if (output_buffer == NULL)
-    {
-        return false;
-    }
-
-    /* empty string */
-    if (input == NULL)
-    {
-        output = ensure(output_buffer, sizeof("\"\""));
-        if (output == NULL)
-        {
-            return false;
-        }
-        strcpy((char*)output, "\"\"");
-
-        return true;
-    }
-
-    /* set "flag" to 1 if something needs to be escaped */
-    for (input_pointer = input; *input_pointer; input_pointer++)
-    {
-        switch (*input_pointer)
-        {
-            case '\"':
-            case '\\':
-            case '\b':
-            case '\f':
-            case '\n':
-            case '\r':
-            case '\t':
-                /* one character escape sequence */
-                escape_characters++;
-                break;
-            default:
-                if (*input_pointer < 32)
-                {
-                    /* UTF-16 escape sequence uXXXX */
-                    escape_characters += 5;
-                }
-                break;
-        }
-    }
-    output_length = (size_t)(input_pointer - input) + escape_characters;
-
-    output = ensure(output_buffer, output_length + sizeof("\"\""));
-    if (output == NULL)
-    {
-        return false;
-    }
-
-    /* no characters have to be escaped */
-    if (escape_characters == 0)
-    {
-        output[0] = '\"';
-        memcpy(output + 1, input, output_length);
-        output[output_length + 1] = '\"';
-        output[output_length + 2] = '\0';
-
-        return true;
-    }
-
-    output[0] = '\"';
-    output_pointer = output + 1;
-    /* copy the string */
-    for (input_pointer = input; *input_pointer != '\0'; (void)input_pointer++, output_pointer++)
-    {
-        if ((*input_pointer > 31) && (*input_pointer != '\"') && (*input_pointer != '\\'))
-        {
-            /* normal character, copy */
-            *output_pointer = *input_pointer;
-        }
-        else
-        {
-            /* character needs to be escaped */
-            *output_pointer++ = '\\';
-            switch (*input_pointer)
-            {
-                case '\\':
-                    *output_pointer = '\\';
-                    break;
-                case '\"':
-                    *output_pointer = '\"';
-                    break;
-                case '\b':
-                    *output_pointer = 'b';
-                    break;
-                case '\f':
-                    *output_pointer = 'f';
-                    break;
-                case '\n':
-                    *output_pointer = 'n';
-                    break;
-                case '\r':
-                    *output_pointer = 'r';
-                    break;
-                case '\t':
-                    *output_pointer = 't';
-                    break;
-                default:
-                    /* escape and print as unicode codepoint */
-                    sprintf((char*)output_pointer, "u%04x", *input_pointer);
-                    output_pointer += 4;
-                    break;
-            }
-        }
-    }
-    output[output_length + 1] = '\"';
-    output[output_length + 2] = '\0';
 
     return true;
 }
@@ -1366,75 +1190,7 @@ static cJSON_bool parse_value(cJSON * const item, parse_buffer * const input_buf
 /* Render a value to text. */
 static cJSON_bool print_value(const cJSON * const item, printbuffer * const output_buffer)
 {
-    unsigned char *output = NULL;
-
-    if ((item == NULL) || (output_buffer == NULL))
-    {
-        return false;
-    }
-
-    switch ((item->type) & 0xFF)
-    {
-        case cJSON_NULL:
-            output = ensure(output_buffer, 5);
-            if (output == NULL)
-            {
-                return false;
-            }
-            strcpy((char*)output, "null");
-            return true;
-
-        case cJSON_False:
-            output = ensure(output_buffer, 6);
-            if (output == NULL)
-            {
-                return false;
-            }
-            strcpy((char*)output, "false");
-            return true;
-
-        case cJSON_True:
-            output = ensure(output_buffer, 5);
-            if (output == NULL)
-            {
-                return false;
-            }
-            strcpy((char*)output, "true");
-            return true;
-
-        case cJSON_Number:
-            return print_number(item, output_buffer);
-
-        case cJSON_Raw:
-        {
-            size_t raw_length = 0;
-            if (item->valuestring == NULL)
-            {
-                return false;
-            }
-
-            raw_length = strlen(item->valuestring) + sizeof("");
-            output = ensure(output_buffer, raw_length);
-            if (output == NULL)
-            {
-                return false;
-            }
-            memcpy(output, item->valuestring, raw_length);
-            return true;
-        }
-
-        case cJSON_String:
-            return print_string(item, output_buffer);
-
-        case cJSON_Array:
-            return print_array(item, output_buffer);
-
-        case cJSON_Object:
-            return print_object(item, output_buffer);
-
-        default:
-            return false;
-    }
+    return true;
 }
 
 /* Build an array from input text. */
@@ -1538,61 +1294,6 @@ fail:
 /* Render an array to text */
 static cJSON_bool print_array(const cJSON * const item, printbuffer * const output_buffer)
 {
-    unsigned char *output_pointer = NULL;
-    size_t length = 0;
-    cJSON *current_element = item->child;
-
-    if (output_buffer == NULL)
-    {
-        return false;
-    }
-
-    /* Compose the output array. */
-    /* opening square bracket */
-    output_pointer = ensure(output_buffer, 1);
-    if (output_pointer == NULL)
-    {
-        return false;
-    }
-
-    *output_pointer = '[';
-    output_buffer->offset++;
-    output_buffer->depth++;
-
-    while (current_element != NULL)
-    {
-        if (!print_value(current_element, output_buffer))
-        {
-            return false;
-        }
-        update_offset(output_buffer);
-        if (current_element->next)
-        {
-            length = (size_t) (output_buffer->format ? 2 : 1);
-            output_pointer = ensure(output_buffer, length + 1);
-            if (output_pointer == NULL)
-            {
-                return false;
-            }
-            *output_pointer++ = ',';
-            if(output_buffer->format)
-            {
-                *output_pointer++ = ' ';
-            }
-            *output_pointer = '\0';
-            output_buffer->offset += length;
-        }
-        current_element = current_element->next;
-    }
-
-    output_pointer = ensure(output_buffer, 2);
-    if (output_pointer == NULL)
-    {
-        return false;
-    }
-    *output_pointer++ = ']';
-    *output_pointer = '\0';
-    output_buffer->depth--;
 
     return true;
 }
@@ -1713,113 +1414,6 @@ fail:
 /* Render an object to text. */
 static cJSON_bool print_object(const cJSON * const item, printbuffer * const output_buffer)
 {
-    unsigned char *output_pointer = NULL;
-    size_t length = 0;
-    cJSON *current_item = item->child;
-
-    if (output_buffer == NULL)
-    {
-        return false;
-    }
-
-    /* Compose the output: */
-    length = (size_t) (output_buffer->format ? 2 : 1); /* fmt: {\n */
-    output_pointer = ensure(output_buffer, length + 1);
-    if (output_pointer == NULL)
-    {
-        return false;
-    }
-
-    *output_pointer++ = '{';
-    output_buffer->depth++;
-    if (output_buffer->format)
-    {
-        *output_pointer++ = '\n';
-    }
-    output_buffer->offset += length;
-
-    while (current_item)
-    {
-        if (output_buffer->format)
-        {
-            size_t i;
-            output_pointer = ensure(output_buffer, output_buffer->depth);
-            if (output_pointer == NULL)
-            {
-                return false;
-            }
-            for (i = 0; i < output_buffer->depth; i++)
-            {
-                *output_pointer++ = '\t';
-            }
-            output_buffer->offset += output_buffer->depth;
-        }
-
-        /* print key */
-        if (!print_string_ptr((unsigned char*)current_item->string, output_buffer))
-        {
-            return false;
-        }
-        update_offset(output_buffer);
-
-        length = (size_t) (output_buffer->format ? 2 : 1);
-        output_pointer = ensure(output_buffer, length);
-        if (output_pointer == NULL)
-        {
-            return false;
-        }
-        *output_pointer++ = ':';
-        if (output_buffer->format)
-        {
-            *output_pointer++ = '\t';
-        }
-        output_buffer->offset += length;
-
-        /* print value */
-        if (!print_value(current_item, output_buffer))
-        {
-            return false;
-        }
-        update_offset(output_buffer);
-
-        /* print comma if not last */
-        length = ((size_t)(output_buffer->format ? 1 : 0) + (size_t)(current_item->next ? 1 : 0));
-        output_pointer = ensure(output_buffer, length + 1);
-        if (output_pointer == NULL)
-        {
-            return false;
-        }
-        if (current_item->next)
-        {
-            *output_pointer++ = ',';
-        }
-
-        if (output_buffer->format)
-        {
-            *output_pointer++ = '\n';
-        }
-        *output_pointer = '\0';
-        output_buffer->offset += length;
-
-        current_item = current_item->next;
-    }
-
-    output_pointer = ensure(output_buffer, output_buffer->format ? (output_buffer->depth + 1) : 2);
-    if (output_pointer == NULL)
-    {
-        return false;
-    }
-    if (output_buffer->format)
-    {
-        size_t i;
-        for (i = 0; i < (output_buffer->depth - 1); i++)
-        {
-            *output_pointer++ = '\t';
-        }
-    }
-    *output_pointer++ = '}';
-    *output_pointer = '\0';
-    output_buffer->depth--;
 
     return true;
 }
