@@ -43,7 +43,7 @@
 #include "../include/mm.h"
 #include "../include/serial.h"
 #include "../include/tools.h"
-#include "../include/float.h
+#include "../include/float.h"
 
 #ifdef ENABLE_LOCALES
 #include <locale.h>
