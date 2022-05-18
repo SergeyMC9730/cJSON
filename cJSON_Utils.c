@@ -34,7 +34,6 @@
 #pragma warning (disable : 4001)
 #endif
 
-#include <ctype.h>
 #include "../include/cstring.h"
 #include "../include/stdio.h"
 #include "../include/math.h"
