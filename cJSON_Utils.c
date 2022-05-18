@@ -36,9 +36,7 @@
 
 #include <ctype.h>
 #include "../include/cstring.h"
-#include <stdlib.h>
 #include "../include/stdio.h"
-#include <limits.h>
 #include "../include/math.h"
 #include "../include/float.h"
 #include "../include/sort.h"
