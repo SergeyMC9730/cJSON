@@ -35,13 +35,13 @@
 #endif
 
 #include <ctype.h>
-#include <string.h>
+#include "../include/cstring.h"
 #include <stdlib.h>
-#include <stdio.h>
+#include "../include/stdio.h"
 #include <limits.h>
-#include <math.h>
-#include <float.h>
-#include <math.h>
+#include "../include/math.h"
+#include "../include/float.h"
+#include "../include/sort.h"
 
 #if defined(_MSC_VER)
 #pragma warning (pop)
