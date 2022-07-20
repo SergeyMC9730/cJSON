@@ -142,7 +142,7 @@ static int case_insensitive_strcmp(const unsigned char *string1, const unsigned 
         return 0;
     }
 
-    for(; tolower(*string1) == tolower(*string2); (void)string1++, string2++)
+    for(; tolowerchar(*string1) == tolowerchar(*string2); (void)string1++, string2++)
     {
         if (*string1 == '\0')
         {
@@ -150,7 +150,7 @@ static int case_insensitive_strcmp(const unsigned char *string1, const unsigned 
         }
     }
 
-    return tolower(*string1) - tolower(*string2);
+    return tolowerchar(*string1) - tolowerchar(*string2);
 }
 
 typedef struct internal_hooks
@@ -435,104 +435,104 @@ typedef struct
     internal_hooks hooks;
 } printbuffer;
 
-/* realloc printbuffer if necessary to have at least "needed" bytes more */
-static unsigned char* ensure(printbuffer * const p, size_t needed)
-{
-    unsigned char *newbuffer = NULL;
-    size_t newsize = 0;
+// /* realloc printbuffer if necessary to have at least "needed" bytes more */
+// static unsigned char* ensure(printbuffer * const p, size_t needed)
+// {
+//     unsigned char *newbuffer = NULL;
+//     size_t newsize = 0;
 
-    if ((p == NULL) || (p->buffer == NULL))
-    {
-        return NULL;
-    }
+//     if ((p == NULL) || (p->buffer == NULL))
+//     {
+//         return NULL;
+//     }
 
-    if ((p->length > 0) && (p->offset >= p->length))
-    {
-        /* make sure that offset is valid */
-        return NULL;
-    }
+//     if ((p->length > 0) && (p->offset >= p->length))
+//     {
+//         /* make sure that offset is valid */
+//         return NULL;
+//     }
 
-    if (needed > INT_MAX)
-    {
-        /* sizes bigger than INT_MAX are currently not supported */
-        return NULL;
-    }
+//     if (needed > INT_MAX)
+//     {
+//         /* sizes bigger than INT_MAX are currently not supported */
+//         return NULL;
+//     }
 
-    needed += p->offset + 1;
-    if (needed <= p->length)
-    {
-        return p->buffer + p->offset;
-    }
+//     needed += p->offset + 1;
+//     if (needed <= p->length)
+//     {
+//         return p->buffer + p->offset;
+//     }
 
-    if (p->noalloc) {
-        return NULL;
-    }
+//     if (p->noalloc) {
+//         return NULL;
+//     }
 
-    /* calculate new buffer size */
-    if (needed > (INT_MAX / 2))
-    {
-        /* overflow of int, use INT_MAX if possible */
-        if (needed <= INT_MAX)
-        {
-            newsize = INT_MAX;
-        }
-        else
-        {
-            return NULL;
-        }
-    }
-    else
-    {
-        newsize = needed * 2;
-    }
+//     /* calculate new buffer size */
+//     if (needed > (INT_MAX / 2))
+//     {
+//         /* overflow of int, use INT_MAX if possible */
+//         if (needed <= INT_MAX)
+//         {
+//             newsize = INT_MAX;
+//         }
+//         else
+//         {
+//             return NULL;
+//         }
+//     }
+//     else
+//     {
+//         newsize = needed * 2;
+//     }
 
-    if (p->hooks.reallocate != NULL)
-    {
-        /* reallocate with realloc if available */
-        newbuffer = (unsigned char*)p->hooks.reallocate(p->buffer, newsize);
-        if (newbuffer == NULL)
-        {
-            p->hooks.deallocate(p->buffer);
-            p->length = 0;
-            p->buffer = NULL;
+//     if (p->hooks.reallocate != NULL)
+//     {
+//         /* reallocate with realloc if available */
+//         newbuffer = (unsigned char*)p->hooks.reallocate(p->buffer, newsize);
+//         if (newbuffer == NULL)
+//         {
+//             p->hooks.deallocate(p->buffer);
+//             p->length = 0;
+//             p->buffer = NULL;
 
-            return NULL;
-        }
-    }
-    else
-    {
-        /* otherwise reallocate manually */
-        newbuffer = (unsigned char*)p->hooks.allocate(newsize);
-        if (!newbuffer)
-        {
-            p->hooks.deallocate(p->buffer);
-            p->length = 0;
-            p->buffer = NULL;
+//             return NULL;
+//         }
+//     }
+//     else
+//     {
+//         /* otherwise reallocate manually */
+//         newbuffer = (unsigned char*)p->hooks.allocate(newsize);
+//         if (!newbuffer)
+//         {
+//             p->hooks.deallocate(p->buffer);
+//             p->length = 0;
+//             p->buffer = NULL;
 
-            return NULL;
-        }
+//             return NULL;
+//         }
 
-        memcpy(newbuffer, p->buffer, p->offset + 1);
-        p->hooks.deallocate(p->buffer);
-    }
-    p->length = newsize;
-    p->buffer = newbuffer;
+//         memcpy(newbuffer, p->buffer, p->offset + 1);
+//         p->hooks.deallocate(p->buffer);
+//     }
+//     p->length = newsize;
+//     p->buffer = newbuffer;
 
-    return newbuffer + p->offset;
-}
+//     return newbuffer + p->offset;
+// }
 
-/* calculate the new length of the string in a printbuffer and update the offset */
-static void update_offset(printbuffer * const buffer)
-{
-    const unsigned char *buffer_pointer = NULL;
-    if ((buffer == NULL) || (buffer->buffer == NULL))
-    {
-        return;
-    }
-    buffer_pointer = buffer->buffer + buffer->offset;
+// /* calculate the new length of the string in a printbuffer and update the offset */
+// static void update_offset(printbuffer * const buffer)
+// {
+//     const unsigned char *buffer_pointer = NULL;
+//     if ((buffer == NULL) || (buffer->buffer == NULL))
+//     {
+//         return;
+//     }
+//     buffer_pointer = buffer->buffer + buffer->offset;
 
-    buffer->offset += strlen((const char*)buffer_pointer);
-}
+//     buffer->offset += strlen((const char*)buffer_pointer);
+// }
 
 /* securely comparison of floating-point variables */
 static cJSON_bool compare_double(double a, double b)
@@ -832,6 +832,60 @@ fail:
 static cJSON_bool parse_value(cJSON * const item, parse_buffer * const input_buffer);
 static cJSON_bool parse_array(cJSON * const item, parse_buffer * const input_buffer);
 static cJSON_bool parse_object(cJSON * const item, parse_buffer * const input_buffer);
+
+static cJSON_bool parse_value(cJSON * const item, parse_buffer * const input_buffer)
+{
+    if ((input_buffer == NULL) || (input_buffer->content == NULL))
+    {
+        return false; /* no input */
+    }
+
+    /* parse the different types of values */
+    /* null */
+    if (can_read(input_buffer, 4) && (strncmp((const char*)buffer_at_offset(input_buffer), "null", 4) == 0))
+    {
+        item->type = cJSON_NULL;
+        input_buffer->offset += 4;
+        return true;
+    }
+    /* false */
+    if (can_read(input_buffer, 5) && (strncmp((const char*)buffer_at_offset(input_buffer), "false", 5) == 0))
+    {
+        item->type = cJSON_False;
+        input_buffer->offset += 5;
+        return true;
+    }
+    /* true */
+    if (can_read(input_buffer, 4) && (strncmp((const char*)buffer_at_offset(input_buffer), "true", 4) == 0))
+    {
+        item->type = cJSON_True;
+        item->valueint = 1;
+        input_buffer->offset += 4;
+        return true;
+    }
+    /* string */
+    if (can_access_at_index(input_buffer, 0) && (buffer_at_offset(input_buffer)[0] == '\"'))
+    {
+        return parse_string(item, input_buffer);
+    }
+    /* number */
+    if (can_access_at_index(input_buffer, 0) && ((buffer_at_offset(input_buffer)[0] == '-') || ((buffer_at_offset(input_buffer)[0] >= '0') && (buffer_at_offset(input_buffer)[0] <= '9'))))
+    {
+        return parse_number(item, input_buffer);
+    }
+    /* array */
+    if (can_access_at_index(input_buffer, 0) && (buffer_at_offset(input_buffer)[0] == '['))
+    {
+        return parse_array(item, input_buffer);
+    }
+    /* object */
+    if (can_access_at_index(input_buffer, 0) && (buffer_at_offset(input_buffer)[0] == '{'))
+    {
+        return parse_object(item, input_buffer);
+    }
+
+    return false;
+}
 
 /* Utility to jump whitespace and cr/lf */
 static parse_buffer *buffer_skip_whitespace(parse_buffer * const buffer)

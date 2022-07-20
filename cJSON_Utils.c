@@ -39,6 +39,7 @@
 #include "../include/math.h"
 #include "../include/float.h"
 #include "../include/sort.h"
+#include "../include/mm.h"
 
 #if defined(_MSC_VER)
 #pragma warning (pop)
@@ -94,7 +95,7 @@ static int compare_strings(const unsigned char *string1, const unsigned char *st
         return strcmp((const char*)string1, (const char*)string2);
     }
 
-    for(; tolower(*string1) == tolower(*string2); (void)string1++, string2++)
+    for(; tolowerchar(*string1) == tolowerchar(*string2); (void)string1++, string2++)
     {
         if (*string1 == '\0')
         {
@@ -102,7 +103,7 @@ static int compare_strings(const unsigned char *string1, const unsigned char *st
         }
     }
 
-    return tolower(*string1) - tolower(*string2);
+    return tolowerchar(*string1) - tolowerchar(*string2);
 }
 
 /* securely comparison of floating-point variables */
@@ -136,7 +137,7 @@ static cJSON_bool compare_pointers(const unsigned char *name, const unsigned cha
                 pointer++;
             }
         }
-        else if ((!case_sensitive && (tolower(*name) != tolower(*pointer))) || (case_sensitive && (*name != *pointer)))
+        else if ((!case_sensitive && (tolowerchar(*name) != tolowerchar(*pointer))) || (case_sensitive && (*name != *pointer)))
         {
             return false;
         }
